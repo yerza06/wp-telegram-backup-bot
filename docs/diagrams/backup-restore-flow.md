@@ -4,9 +4,9 @@
 
 Связанные документы:
 
-- `docs/technical-spec.md` - основное техническое задание.
-- `docs/technical-spec-questions.md` - вопросы для уточнения требований.
-- `docs/backup-restore-flow.excalidraw` - визуальная схема процесса backup/restore.
+- `docs/specs/technical-spec.md` - основное техническое задание.
+- `docs/specs/technical-spec-questions.md` - вопросы для уточнения требований.
+- `docs/diagrams/backup-restore-flow.excalidraw` - визуальная схема процесса backup/restore.
 
 ## 1. Общие принципы
 

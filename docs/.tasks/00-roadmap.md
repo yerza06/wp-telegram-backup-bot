@@ -1,19 +1,22 @@
 # Roadmap реализации Telegram-WP-Backup
 
-Источник: `docs/technical-spec.md`.
+Источник: `docs/specs/technical-spec.md`.
 
 ## Порядок выполнения
 
 1. `01-project-foundation.md` - привести каркас проекта и зависимости к ТЗ.
-2. `02-config-and-security.md` - реализовать `.env`-конфигурацию, роли и безопасную работу с секретами.
-3. `03-local-database.md` - добавить SQLite, SQLAlchemy asyncio и модели `backups`/`operations`.
-4. `04-telegram-interface.md` - реализовать команды, inline-кнопки и авторизацию в Telegram.
-5. `05-backup-service.md` - реализовать полный `.tar.zst` бэкап WordPress + MySQL.
-6. `06-restore-service.md` - реализовать подтверждаемое восстановление из локального или внешнего архива.
-7. `07-disk-monitoring.md` - реализовать `/disk`, `/disk_chart` и проверку свободного места.
-8. `08-cache-clear-service.md` - реализовать очистку кэша WordPress через WP-CLI от нужного пользователя.
-9. `09-scheduler.md` - реализовать APScheduler для плановых полных бэкапов.
-10. `10-logging-errors-and-deploy.md` - завершить логирование, обработку ошибок, инструкцию systemd и приемочные проверки.
+2. `02-env-configuration.md` - настроить `.env`-конфигурацию через `pydantic-settings`.
+3. `03-local-database.md` - настроить подключение SQLite, SQLAlchemy asyncio и модели `backups`/`operations`.
+4. `04-telegram-interface.md` - реализовать интерфейс чата: команды, меню и inline-кнопки.
+5. `05-user-access.md` - правильно настроить роли и права Telegram-пользователей.
+6. `06-backup-service.md` - реализовать полный `.tar.zst` бэкап WordPress + MySQL.
+7. `07-local-restore-service.md` - реализовать восстановление из списка локально сохраненных бэкапов.
+8. `08-external-restore-service.md` - реализовать восстановление из внешнего локального архива с проверкой целостности.
+9. `09-cache-clear-service.md` - реализовать очистку кэша WordPress через WP-CLI от нужного пользователя.
+10. `10-disk-monitoring.md` - реализовать `/disk`, `/disk_chart` и проверку свободного места.
+11. `11-scheduler.md` - реализовать APScheduler для плановых полных бэкапов.
+12. `12-logging-errors-and-deploy.md` - завершить логирование, обработку ошибок, инструкцию systemd и приемочные проверки.
+13. `13-documentation.md` - оформить проектную документацию в `docs/` и разнести вспомогательные материалы по поддиректориям.
 
 ## Общие правила реализации
 
@@ -23,4 +26,4 @@
 - Одновременно может выполняться только одна тяжелая операция: `backup` или `restore`.
 - Готовый бэкап не отправлять в Telegram файлом, показывать только полный локальный путь.
 - Управление пользователями и расписанием через Telegram не реализовывать.
-
+- ТЗ, вопросы к нему и диаграммы хранить в отдельных поддиректориях `docs/`, а план реализации - в `docs/.tasks/`.
