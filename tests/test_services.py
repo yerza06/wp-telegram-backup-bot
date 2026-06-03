@@ -6,7 +6,7 @@ import pytest
 
 from bot.core.config import Settings
 from bot.services.cache import CacheService
-from bot.services.disk import parse_df_output, parse_du_output
+from bot.services.disk import parse_df_output, parse_du_output, resolve_existing_path
 from bot.services.scheduler import cron_trigger_from_config
 
 
@@ -35,6 +35,21 @@ def test_parse_df_output() -> None:
 
 def test_parse_du_output() -> None:
     assert parse_du_output("12345\t/var/www\n") == 12345
+
+
+def test_resolve_existing_path_uses_nearest_parent(tmp_path) -> None:
+    existing_parent = tmp_path / "backups"
+    existing_parent.mkdir()
+    missing_backup_dir = existing_parent / "example.com"
+
+    assert resolve_existing_path(missing_backup_dir) == existing_parent
+
+
+def test_resolve_existing_path_keeps_existing_path(tmp_path) -> None:
+    existing_path = tmp_path / "backups"
+    existing_path.mkdir()
+
+    assert resolve_existing_path(existing_path) == existing_path
 
 
 def test_build_wp_runuser_command(settings_for_services: Settings) -> None:
