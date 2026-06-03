@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bot.core.roles import Role
-from bot.core.security import callback_required_role, command_required_role
+from bot.core.security import callback_required_role, command_required_role, text_required_role
 
 
 def test_command_access_matrix() -> None:
@@ -19,3 +19,10 @@ def test_callback_access_matrix() -> None:
     assert callback_required_role("backup:create") is Role.admin
     assert callback_required_role("cache:clear:confirm") is Role.admin
     assert callback_required_role("restore:confirm:42") is Role.superadmin
+
+
+def test_reply_button_access_matrix() -> None:
+    assert text_required_role("💽 Проверить диск") is Role.viewer
+    assert text_required_role("💾 Создать полный бэкап") is Role.admin
+    assert text_required_role("🧹 Очистить кэш") is Role.admin
+    assert text_required_role("обычное сообщение") is None

@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+BACKUP_BUTTON_TEXT = "💾 Создать полный бэкап"
+DISK_BUTTON_TEXT = "💽 Проверить диск"
+DISK_CHART_BUTTON_TEXT = "📊 График диска"
+BACKUPS_BUTTON_TEXT = "📦 Показать бэкапы"
+CLEAR_CACHE_BUTTON_TEXT = "🧹 Очистить кэш"
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(text="💾 Создать полный бэкап", callback_data="backup:create")
-    builder.button(text="💽 Проверить диск", callback_data="disk:check")
-    builder.button(text="📊 График диска", callback_data="disk:chart")
-    builder.button(text="📦 Показать бэкапы", callback_data="backups:list")
-    builder.button(text="🧹 Очистить кэш", callback_data="cache:clear:ask")
-    builder.adjust(1)
-    return builder.as_markup()
+
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=BACKUP_BUTTON_TEXT)],
+            [KeyboardButton(text=DISK_BUTTON_TEXT), KeyboardButton(text=DISK_CHART_BUTTON_TEXT)],
+            [KeyboardButton(text=BACKUPS_BUTTON_TEXT), KeyboardButton(text=CLEAR_CACHE_BUTTON_TEXT)],
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Выберите действие",
+    )
 
 
 def cache_confirm_keyboard() -> InlineKeyboardMarkup:

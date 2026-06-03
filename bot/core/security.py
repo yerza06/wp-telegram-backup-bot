@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from bot.core.auth import get_user_role, has_role
 from bot.core.config import Settings
-from bot.core.roles import CALLBACK_MIN_ROLES, COMMAND_MIN_ROLES, Role
+from bot.core.roles import CALLBACK_MIN_ROLES, COMMAND_MIN_ROLES, TEXT_MIN_ROLES, Role
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,12 @@ def callback_required_role(data: str | None) -> Role | None:
     if data.startswith("restore:confirm") or data.startswith("restore:path:confirm"):
         return Role.superadmin
     return CALLBACK_MIN_ROLES.get(data)
+
+
+def text_required_role(text: str | None) -> Role | None:
+    if not text:
+        return None
+    return TEXT_MIN_ROLES.get(text.strip())
 
 
 class AccessMiddleware(BaseMiddleware):
@@ -69,9 +75,11 @@ class AccessMiddleware(BaseMiddleware):
         return await handler(event, data)
 
     def _required_role(self, event: TelegramObject) -> Role | None:
-        if isinstance(event, Message) and event.text and event.text.startswith("/"):
-            command = event.text.split(maxsplit=1)[0].split("@", maxsplit=1)[0].lstrip("/")
-            return command_required_role(command)
+        if isinstance(event, Message) and event.text:
+            if event.text.startswith("/"):
+                command = event.text.split(maxsplit=1)[0].split("@", maxsplit=1)[0].lstrip("/")
+                return command_required_role(command)
+            return text_required_role(event.text)
         if isinstance(event, CallbackQuery):
             return callback_required_role(event.data)
         return None

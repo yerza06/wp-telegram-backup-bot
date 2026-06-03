@@ -4,6 +4,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
+from bot.keyboards.main import BACKUP_BUTTON_TEXT, BACKUPS_BUTTON_TEXT
 from bot.services import BackupService, OperationBusyError
 
 router = Router(name=__name__)
@@ -21,6 +22,11 @@ async def backup(message: Message, backup_service: BackupService) -> None:
     await message.answer(await _run_backup(backup_service, message.from_user.id if message.from_user else None))
 
 
+@router.message(F.text == BACKUP_BUTTON_TEXT)
+async def backup_reply_button(message: Message, backup_service: BackupService) -> None:
+    await message.answer(await _run_backup(backup_service, message.from_user.id if message.from_user else None))
+
+
 @router.callback_query(F.data == "backup:create")
 async def backup_callback(callback: CallbackQuery, backup_service: BackupService) -> None:
     await callback.answer()
@@ -30,6 +36,11 @@ async def backup_callback(callback: CallbackQuery, backup_service: BackupService
 
 @router.message(Command("backups"))
 async def backups(message: Message, backup_service: BackupService) -> None:
+    await message.answer(await backup_service.list_backups())
+
+
+@router.message(F.text == BACKUPS_BUTTON_TEXT)
+async def backups_reply_button(message: Message, backup_service: BackupService) -> None:
     await message.answer(await backup_service.list_backups())
 
 
