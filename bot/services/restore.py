@@ -101,10 +101,11 @@ class RestoreService:
             extracted: Path | None = None
             try:
                 self.archive_service.validate_archive_path(archive_path)
+                await self.archive_service.ensure_archive_readable(archive_path)
                 await self.disk_service.ensure_min_free_space()
-                extracted = await self.archive_service.extract_and_validate(archive_path)
                 emergency_path = await self.backup_service.create_emergency_backup(operation_id=op.id)
                 logger.info("Emergency backup created before restore: %s", emergency_path)
+                extracted = await self.archive_service.extract_and_validate(archive_path)
                 replace_directory(extracted / "wordpress", self.settings.wordpress.path)
                 await self._restore_database(extracted / "database" / "db.sql")
                 if backup_id is not None:

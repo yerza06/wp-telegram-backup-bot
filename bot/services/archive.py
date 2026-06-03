@@ -21,6 +21,18 @@ class ArchiveService:
         if not str(path).endswith(".tar.zst"):
             raise ArchiveError("Архив должен иметь расширение .tar.zst")
 
+    async def ensure_archive_readable(self, archive_path: Path) -> None:
+        self.validate_archive_path(archive_path)
+        try:
+            await self.runner.run([
+                self.settings.tools.tar_path,
+                "--zstd",
+                "-tf",
+                str(archive_path),
+            ])
+        except ProcessExecutionError as exc:
+            raise ArchiveError(f"Архив не читается: {exc}") from exc
+
     async def extract_and_validate(self, archive_path: Path) -> Path:
         self.validate_archive_path(archive_path)
         target = Path(tempfile.mkdtemp(prefix="restore_", dir=self.settings.backup.tmp_path))
