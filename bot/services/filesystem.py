@@ -13,6 +13,14 @@ def ensure_wordpress_path(path: Path) -> None:
         raise InvalidWordPressPathError(f"Каталог WordPress не найден: {path}")
 
 
+def validate_wordpress_install(path: Path) -> None:
+    ensure_wordpress_path(path)
+    required_paths = ("wp-config.php", "wp-admin", "wp-includes", "wp-content")
+    missing = [item for item in required_paths if not (path / item).exists()]
+    if missing:
+        raise InvalidWordPressPathError(f"Восстановленный WordPress неполный, отсутствует: {', '.join(missing)}")
+
+
 def ensure_directory(path: Path, *, create: bool = True, error_cls: type[Exception] = BackupPathError) -> None:
     if create:
         path.mkdir(parents=True, exist_ok=True)

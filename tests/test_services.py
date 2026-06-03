@@ -7,7 +7,7 @@ import pytest
 from bot.core.config import Settings
 from bot.services.cache import CacheService
 from bot.services.disk import parse_df_output, parse_du_output, resolve_existing_path
-from bot.services.filesystem import activate_restored_directory, finalize_reserved_directory, reserve_directory, rollback_reserved_directory
+from bot.services.filesystem import activate_restored_directory, finalize_reserved_directory, reserve_directory, rollback_reserved_directory, validate_wordpress_install
 from bot.services.scheduler import cron_trigger_from_config
 
 
@@ -82,6 +82,17 @@ def test_rollback_reserved_directory_restores_original_target(tmp_path) -> None:
 
     assert (target / "index.php").read_text(encoding="utf-8") == "current"
     assert not reserve.exists()
+
+
+def test_validate_wordpress_install_requires_core_paths(tmp_path) -> None:
+    wp_path = tmp_path / "wp"
+    wp_path.mkdir()
+    (wp_path / "wp-config.php").write_text("<?php", encoding="utf-8")
+    (wp_path / "wp-admin").mkdir()
+    (wp_path / "wp-includes").mkdir()
+    (wp_path / "wp-content").mkdir()
+
+    validate_wordpress_install(wp_path)
 
 
 def test_build_wp_runuser_command(settings_for_services: Settings) -> None:

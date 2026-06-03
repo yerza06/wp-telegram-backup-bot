@@ -22,6 +22,7 @@ from bot.services.filesystem import (
     finalize_reserved_directory,
     reserve_directory,
     rollback_reserved_directory,
+    validate_wordpress_install,
 )
 from bot.services.operations import OperationService
 from bot.services.process import CommandRunner
@@ -117,6 +118,8 @@ class RestoreService:
                 reserve_path = reserve_directory(self.settings.wordpress.path)
                 extracted = await self.archive_service.extract_and_validate(archive_path, parent_dir=restore_tmp_parent)
                 activate_restored_directory(extracted / "wordpress", self.settings.wordpress.path, reserve_path)
+                validate_wordpress_install(self.settings.wordpress.path)
+                await self._apply_wordpress_permissions()
 
                 await self._restore_database(extracted / "database" / "db.sql")
                 finalize_reserved_directory(reserve_path)
@@ -137,6 +140,14 @@ class RestoreService:
             finally:
                 if extracted:
                     shutil.rmtree(extracted, ignore_errors=True)
+
+    async def _apply_wordpress_permissions(self) -> None:
+        wordpress_path = str(self.settings.wordpress.path)
+        wordpress_user = self.settings.wordpress.cli_run_as_user or "www-data"
+        owner = f"{wordpress_user}:{wordpress_user}"
+        await self.runner.run(["chown", "-R", owner, wordpress_path])
+        await self.runner.run(["find", wordpress_path, "-type", "d", "-exec", "chmod", "755", "{}", ";"])
+        await self.runner.run(["find", wordpress_path, "-type", "f", "-exec", "chmod", "644", "{}", ";"])
 
     async def _restore_database(self, sql_path: Path) -> None:
         args = [
