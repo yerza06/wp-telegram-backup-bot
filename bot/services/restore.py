@@ -113,8 +113,6 @@ class RestoreService:
                 self.archive_service.validate_archive_path(archive_path)
                 await self.archive_service.ensure_archive_readable(archive_path)
                 await self.disk_service.ensure_min_free_space()
-                emergency_path = await self.backup_service.create_emergency_backup(operation_id=op.id)
-                logger.info("Emergency backup created before restore: %s", emergency_path)
 
                 reserve_path = reserve_directory(self.settings.wordpress.path)
                 extracted = await self.archive_service.extract_and_validate(archive_path, parent_dir=restore_tmp_parent)
