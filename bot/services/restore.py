@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import shutil
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -19,6 +21,14 @@ from bot.services.process import CommandRunner
 from bot.utils.sanitize import safe_error_text
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RestorePoint:
+    id: int
+    archive_path: Path
+    file_size_bytes: int | None
+    created_at: datetime
 
 
 class RestoreService:
@@ -40,17 +50,29 @@ class RestoreService:
         self.disk_service = disk_service
         self.archive_service = archive_service
 
-    async def list_restore_points(self) -> str:
+    async def get_restore_points(self, *, limit: int = 10) -> list[RestorePoint]:
         await self.operations.ensure_no_active_heavy_operation()
         async with self.sessionmaker() as session:
-            backups = await BackupRepository(session).list_recent(limit=10)
-        if not backups:
-            return "Нет доступных локальных бэкапов для восстановления."
+            backups = await BackupRepository(session).list_recent(limit=limit)
+        return [
+            RestorePoint(
+                id=backup.id,
+                archive_path=Path(backup.archive_path),
+                file_size_bytes=backup.file_size_bytes,
+                created_at=backup.created_at,
+            )
+            for backup in backups
+            if backup.archive_path and Path(backup.archive_path).exists()
+        ]
+
+    async def list_restore_points(self) -> str:
+        restore_points = await self.get_restore_points(limit=10)
+        if not restore_points:
+            return "Нет бэкапов с существующими архивами."
         lines = ["Выберите бэкап и отправьте команду /restore_<id>:"]
-        for backup in backups:
-            if backup.archive_path and Path(backup.archive_path).exists():
-                lines.append(f"/restore_{backup.id} — <code>{backup.archive_path}</code>")
-        return "\n".join(lines) if len(lines) > 1 else "Нет бэкапов с существующими архивами."
+        for backup in restore_points:
+            lines.append(f"/restore_{backup.id} — <code>{backup.archive_path}</code>")
+        return "\n".join(lines)
 
     async def restore_by_id(self, backup_id: int, *, telegram_user_id: int | None = None) -> str:
         async with self.sessionmaker() as session:

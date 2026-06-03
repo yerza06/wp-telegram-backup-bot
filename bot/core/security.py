@@ -23,7 +23,7 @@ def command_required_role(command: str) -> Role | None:
 def callback_required_role(data: str | None) -> Role | None:
     if not data:
         return None
-    if data.startswith("restore:confirm") or data.startswith("restore:path:confirm"):
+    if data.startswith("restore:select") or data.startswith("restore:confirm") or data.startswith("restore:path:confirm"):
         return Role.superadmin
     return CALLBACK_MIN_ROLES.get(data)
 
