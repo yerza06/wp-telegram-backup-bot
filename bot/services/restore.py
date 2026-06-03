@@ -146,8 +146,6 @@ class RestoreService:
         wordpress_user = self.settings.wordpress.cli_run_as_user or "www-data"
         owner = f"{wordpress_user}:{wordpress_user}"
         await self.runner.run(["chown", "-R", owner, wordpress_path])
-        await self.runner.run(["find", wordpress_path, "-type", "d", "-exec", "chmod", "755", "{}", ";"])
-        await self.runner.run(["find", wordpress_path, "-type", "f", "-exec", "chmod", "644", "{}", ";"])
 
     async def _restore_database(self, sql_path: Path) -> None:
         args = [
