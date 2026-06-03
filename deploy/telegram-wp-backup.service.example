@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram WordPress Backup Bot
+After=network.target mariadb.service mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/telegram-wp-backup
+EnvironmentFile=/opt/telegram-wp-backup/.env
+ExecStart=/opt/telegram-wp-backup/.venv/bin/python -m bot
+Restart=always
+RestartSec=5
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
