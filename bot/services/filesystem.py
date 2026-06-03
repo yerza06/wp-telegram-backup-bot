@@ -30,16 +30,27 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def replace_directory(source: Path, target: Path) -> None:
-    backup_target = target.with_name(f"{target.name}.pre_restore_replace")
-    if backup_target.exists():
-        shutil.rmtree(backup_target)
-    target.rename(backup_target)
-    try:
-        shutil.copytree(source, target, symlinks=True)
-    except Exception:
-        if target.exists():
-            shutil.rmtree(target)
-        backup_target.rename(target)
-        raise
-    shutil.rmtree(backup_target)
+def reserve_directory(target: Path) -> Path:
+    reserve_target = target.with_name(f"{target.name}_reserve")
+    if reserve_target.exists():
+        shutil.rmtree(reserve_target)
+    target.rename(reserve_target)
+    return reserve_target
+
+
+def activate_restored_directory(source: Path, target: Path, reserve_target: Path) -> None:
+    if not reserve_target.exists():
+        raise FileNotFoundError(f"Reserve directory not found: {reserve_target}")
+    source.rename(target)
+
+
+def rollback_reserved_directory(target: Path, reserve_target: Path) -> None:
+    if target.exists():
+        shutil.rmtree(target)
+    if reserve_target.exists():
+        reserve_target.rename(target)
+
+
+def finalize_reserved_directory(reserve_target: Path) -> None:
+    if reserve_target.exists():
+        shutil.rmtree(reserve_target)

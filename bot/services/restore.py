@@ -15,7 +15,14 @@ from bot.repositories.operations import OperationRepository
 from bot.services.archive import ArchiveService
 from bot.services.backup import BackupService
 from bot.services.disk import DiskService
-from bot.services.filesystem import ensure_directory, ensure_wordpress_path, replace_directory
+from bot.services.filesystem import (
+    activate_restored_directory,
+    ensure_directory,
+    ensure_wordpress_path,
+    finalize_reserved_directory,
+    reserve_directory,
+    rollback_reserved_directory,
+)
 from bot.services.operations import OperationService
 from bot.services.process import CommandRunner
 from bot.utils.sanitize import safe_error_text
@@ -89,6 +96,8 @@ class RestoreService:
         await self.operations.ensure_no_active_heavy_operation()
         ensure_wordpress_path(self.settings.wordpress.path)
         ensure_directory(self.settings.backup.tmp_path)
+        restore_tmp_parent = self.settings.wordpress.path.parent / ".telegram-wp-restore"
+        ensure_directory(restore_tmp_parent)
         async with self.sessionmaker() as session:
             op = await OperationRepository(session).create(
                 operation_type="restore",
@@ -99,21 +108,29 @@ class RestoreService:
             )
             await session.commit()
             extracted: Path | None = None
+            reserve_path: Path | None = None
             try:
                 self.archive_service.validate_archive_path(archive_path)
                 await self.archive_service.ensure_archive_readable(archive_path)
                 await self.disk_service.ensure_min_free_space()
                 emergency_path = await self.backup_service.create_emergency_backup(operation_id=op.id)
                 logger.info("Emergency backup created before restore: %s", emergency_path)
-                extracted = await self.archive_service.extract_and_validate(archive_path)
-                replace_directory(extracted / "wordpress", self.settings.wordpress.path)
+
+                reserve_path = reserve_directory(self.settings.wordpress.path)
+                extracted = await self.archive_service.extract_and_validate(archive_path, parent_dir=restore_tmp_parent)
+                activate_restored_directory(extracted / "wordpress", self.settings.wordpress.path, reserve_path)
+
                 await self._restore_database(extracted / "database" / "db.sql")
+                finalize_reserved_directory(reserve_path)
+                reserve_path = None
                 if backup_id is not None:
                     await BackupRepository(session).update_status(backup_id, status="restored")
                 await OperationRepository(session).update_status(op.id, status="success")
                 await session.commit()
                 return "✅ Восстановление завершено."
             except Exception as exc:
+                if reserve_path is not None:
+                    rollback_reserved_directory(self.settings.wordpress.path, reserve_path)
                 safe = safe_error_text(exc)
                 logger.exception("Restore failed")
                 await OperationRepository(session).update_status(op.id, status="failed", error_message=safe)
