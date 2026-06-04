@@ -21,18 +21,43 @@ class ArchiveService:
         if not str(path).endswith(".tar.zst"):
             raise ArchiveError("Архив должен иметь расширение .tar.zst")
 
-    async def extract_and_validate(self, archive_path: Path) -> Path:
+    async def ensure_archive_readable(self, archive_path: Path) -> None:
         self.validate_archive_path(archive_path)
-        target = Path(tempfile.mkdtemp(prefix="restore_", dir=self.settings.backup.tmp_path))
         try:
             await self.runner.run([
                 self.settings.tools.tar_path,
                 "--zstd",
-                "-xf",
+                "-tf",
                 str(archive_path),
-                "-C",
-                str(target),
             ])
+        except ProcessExecutionError as exc:
+            raise ArchiveError(f"Архив не читается: {exc}") from exc
+
+    async def extract_and_validate(
+        self,
+        archive_path: Path,
+        *,
+        parent_dir: Path | None = None,
+        run_as_user: str | None = None,
+    ) -> Path:
+        self.validate_archive_path(archive_path)
+        target_parent = parent_dir or self.settings.backup.tmp_path
+        target_parent.mkdir(parents=True, exist_ok=True)
+        target = Path(tempfile.mkdtemp(prefix="restore_", dir=target_parent))
+        if run_as_user:
+            shutil.chown(target, user=run_as_user, group=run_as_user)
+        tar_command = [
+            self.settings.tools.tar_path,
+            "--zstd",
+            "-xf",
+            str(archive_path),
+            "-C",
+            str(target),
+        ]
+        if run_as_user:
+            tar_command = [self.settings.tools.runuser_path, "-u", run_as_user, "--", *tar_command]
+        try:
+            await self.runner.run(tar_command)
             self.validate_extracted(target)
             return target
         except ProcessExecutionError as exc:
