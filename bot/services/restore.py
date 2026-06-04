@@ -153,7 +153,10 @@ class RestoreService:
             self.settings.wordpress.db_name,
         ]
         try:
-            sql = sql_path.read_text(encoding="utf-8")
-            await self.runner.run(args, env={"MYSQL_PWD": self.settings.wordpress.db_password}, input_text=sql)
+            await self.runner.run_with_stdin_file(
+                args,
+                input_path=sql_path,
+                env={"MYSQL_PWD": self.settings.wordpress.db_password},
+            )
         except ProcessExecutionError as exc:
             raise MySQLError("Ошибка mysql при восстановлении БД", returncode=exc.returncode, stderr=exc.stderr) from exc
