@@ -39,3 +39,12 @@ CALLBACK_MIN_ROLES: dict[str, Role] = {
     "cache:clear:confirm": Role.admin,
     "restore:confirm": Role.superadmin,
 }
+
+TEXT_MIN_ROLES: dict[str, Role] = {
+    "💾 Создать полный бэкап": Role.admin,
+    "💽 Проверить диск": Role.viewer,
+    "📊 График диска": Role.viewer,
+    "📦 Показать бэкапы": Role.viewer,
+    "♻️ Восстановить сайт": Role.superadmin,
+    "🧹 Очистить кэш": Role.admin,
+}

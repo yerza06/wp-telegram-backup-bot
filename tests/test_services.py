@@ -6,7 +6,8 @@ import pytest
 
 from bot.core.config import Settings
 from bot.services.cache import CacheService
-from bot.services.disk import parse_df_output, parse_du_output
+from bot.services.disk import parse_df_output, parse_du_output, resolve_existing_path
+from bot.services.filesystem import activate_restored_directory, finalize_reserved_directory, reserve_directory, rollback_reserved_directory, validate_wordpress_install
 from bot.services.scheduler import cron_trigger_from_config
 
 
@@ -35,6 +36,63 @@ def test_parse_df_output() -> None:
 
 def test_parse_du_output() -> None:
     assert parse_du_output("12345\t/var/www\n") == 12345
+
+
+def test_resolve_existing_path_uses_nearest_parent(tmp_path) -> None:
+    existing_parent = tmp_path / "backups"
+    existing_parent.mkdir()
+    missing_backup_dir = existing_parent / "example.com"
+
+    assert resolve_existing_path(missing_backup_dir) == existing_parent
+
+
+def test_resolve_existing_path_keeps_existing_path(tmp_path) -> None:
+    existing_path = tmp_path / "backups"
+    existing_path.mkdir()
+
+    assert resolve_existing_path(existing_path) == existing_path
+
+
+def test_reserve_restore_flow_moves_source_without_copy(tmp_path) -> None:
+    source = tmp_path / "restore" / "wordpress"
+    source.mkdir(parents=True)
+    (source / "index.php").write_text("restored", encoding="utf-8")
+    target = tmp_path / "site"
+    target.mkdir()
+    (target / "index.php").write_text("current", encoding="utf-8")
+
+    reserve = reserve_directory(target)
+    activate_restored_directory(source, target, reserve)
+    finalize_reserved_directory(reserve)
+
+    assert not source.exists()
+    assert (target / "index.php").read_text(encoding="utf-8") == "restored"
+    assert not reserve.exists()
+
+
+def test_rollback_reserved_directory_restores_original_target(tmp_path) -> None:
+    target = tmp_path / "site"
+    target.mkdir()
+    (target / "index.php").write_text("current", encoding="utf-8")
+    reserve = reserve_directory(target)
+    target.mkdir()
+    (target / "index.php").write_text("broken", encoding="utf-8")
+
+    rollback_reserved_directory(target, reserve)
+
+    assert (target / "index.php").read_text(encoding="utf-8") == "current"
+    assert not reserve.exists()
+
+
+def test_validate_wordpress_install_requires_core_paths(tmp_path) -> None:
+    wp_path = tmp_path / "wp"
+    wp_path.mkdir()
+    (wp_path / "wp-config.php").write_text("<?php", encoding="utf-8")
+    (wp_path / "wp-admin").mkdir()
+    (wp_path / "wp-includes").mkdir()
+    (wp_path / "wp-content").mkdir()
+
+    validate_wordpress_install(wp_path)
 
 
 def test_build_wp_runuser_command(settings_for_services: Settings) -> None:

@@ -84,6 +84,7 @@ class BackupService:
         archive_path = self.settings.backup.path_dir / archive_name
 
         staging = Path(tempfile.mkdtemp(prefix="backup_", dir=self.settings.backup.tmp_path))
+        archive_created = False
         try:
             wordpress_dst = staging / "wordpress"
             database_dst = staging / "database"
@@ -109,9 +110,12 @@ class BackupService:
                 str(staging),
                 ".",
             ])
+            archive_created = True
             return archive_path
         finally:
             shutil.rmtree(staging, ignore_errors=True)
+            if not archive_created and archive_path.exists():
+                archive_path.unlink(missing_ok=True)
 
     async def _dump_database(self, output_path: Path) -> None:
         args = [

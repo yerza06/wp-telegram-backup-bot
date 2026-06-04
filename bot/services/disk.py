@@ -59,6 +59,22 @@ def format_bytes(value: int) -> str:
     return f"{value} Б"
 
 
+def resolve_existing_path(path: Path) -> Path:
+    """Return path itself or the nearest existing parent for df checks.
+
+    The backup directory may not exist before the first backup. `df` fails for
+    missing paths, but checking the nearest existing parent reports the same
+    filesystem free space that the future backup directory will use.
+    """
+    current = path
+    while not current.exists():
+        parent = current.parent
+        if parent == current:
+            return current
+        current = parent
+    return current
+
+
 class DiskService:
     def __init__(self, settings: Settings, runner: CommandRunner, sessionmaker: async_sessionmaker[AsyncSession]) -> None:
         self.settings = settings
@@ -67,13 +83,16 @@ class DiskService:
 
     async def get_usage(self, path: Path | None = None) -> DiskUsage:
         checked_path = path or self.settings.backup.path_dir
+        df_path = resolve_existing_path(checked_path)
         try:
-            result = await self.runner.run([self.settings.tools.df_path, "-B1", str(checked_path)])
+            result = await self.runner.run([self.settings.tools.df_path, "-B1", str(df_path)])
             return parse_df_output(result.stdout, checked_path)
         except ProcessExecutionError as exc:
             raise DiskCheckError("Ошибка выполнения df", returncode=exc.returncode, stderr=exc.stderr) from exc
 
     async def get_dir_size(self, path: Path) -> int:
+        if not path.exists():
+            return 0
         try:
             result = await self.runner.run([self.settings.tools.du_path, "-sb", str(path)])
             return parse_du_output(result.stdout)

@@ -46,4 +46,5 @@ async def status(message: Message, status_service: StatusService) -> None:
 async def cancel(callback: CallbackQuery) -> None:
     await callback.answer("Отменено")
     if callback.message:
-        await callback.message.answer("Операция отменена.", reply_markup=main_menu_keyboard())
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer("Операция отменена.")
