@@ -125,6 +125,7 @@ class RestoreService:
                 validate_wordpress_install(self.settings.wordpress.path)
 
                 await self._restore_database(extracted / "database" / "db.sql")
+                await self._apply_wordpress_owner()
                 finalize_reserved_directory(reserve_path)
                 reserve_path = None
                 if backup_id is not None:
@@ -143,6 +144,12 @@ class RestoreService:
             finally:
                 if extracted:
                     shutil.rmtree(extracted, ignore_errors=True)
+
+    async def _apply_wordpress_owner(self) -> None:
+        wordpress_path = str(self.settings.wordpress.path)
+        wordpress_user = self.settings.wordpress.cli_run_as_user or "www-data"
+        owner = f"{wordpress_user}:{wordpress_user}"
+        await self.runner.run(["chown", "-R", owner, wordpress_path])
 
     async def _restore_database(self, sql_path: Path) -> None:
         args = [
