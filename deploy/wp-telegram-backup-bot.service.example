@@ -1,0 +1,26 @@
+[Unit]
+Description=Telegram WordPress Backup Bot
+After=network.target mariadb.service mysql.service
+Requires=mariadb.service mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/wp-telegram-backup-bot
+EnvironmentFile=/opt/wp-telegram-backup-bot/.env
+ExecStart=/opt/wp-telegram-backup-bot/.venv/bin/python -m bot
+Restart=always
+RestartSec=5
+User=root
+Group=root
+
+# Ограничения ресурсов:
+# CPUQuota=100% ограничивает сервис примерно одним CPU-ядром.
+# TasksMax нельзя ставить в 1, иначе бот не сможет запускать tar/mysql/chown.
+CPUQuota=100%
+MemoryAccounting=yes
+MemoryHigh=900M
+MemoryMax=1G
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
