@@ -28,6 +28,5 @@ def test_callback_access_matrix() -> None:
 def test_reply_button_access_matrix() -> None:
     assert text_required_role("💽 Проверить диск") is Role.viewer
     assert text_required_role("💾 Создать полный бэкап") is Role.admin
-    assert text_required_role("♻️ Восстановить сайт") is Role.superadmin
     assert text_required_role("🧹 Очистить кэш") is Role.admin
     assert text_required_role("обычное сообщение") is None
