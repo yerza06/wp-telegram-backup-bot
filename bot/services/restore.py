@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import shutil
 from dataclasses import dataclass
@@ -126,7 +127,7 @@ class RestoreService:
 
                 await self._restore_database(extracted / "database" / "db.sql")
                 await self._apply_wordpress_owner()
-                finalize_reserved_directory(reserve_path)
+                await asyncio.to_thread(finalize_reserved_directory, reserve_path)
                 reserve_path = None
                 if backup_id is not None:
                     await BackupRepository(session).update_status(backup_id, status="restored")
@@ -135,7 +136,7 @@ class RestoreService:
                 return "✅ Восстановление завершено."
             except Exception as exc:
                 if reserve_path is not None:
-                    rollback_reserved_directory(self.settings.wordpress.path, reserve_path)
+                    await asyncio.to_thread(rollback_reserved_directory, self.settings.wordpress.path, reserve_path)
                 safe = safe_error_text(exc)
                 logger.exception("Restore failed")
                 await OperationRepository(session).update_status(op.id, status="failed", error_message=safe)
@@ -143,7 +144,7 @@ class RestoreService:
                 return f"❌ Восстановление не выполнено: {safe}\nПодробности записаны в локальный лог."
             finally:
                 if extracted:
-                    shutil.rmtree(extracted, ignore_errors=True)
+                    await asyncio.to_thread(shutil.rmtree, extracted, True)
 
     async def _apply_wordpress_owner(self) -> None:
         wordpress_path = str(self.settings.wordpress.path)

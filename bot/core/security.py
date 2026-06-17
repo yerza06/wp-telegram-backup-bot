@@ -25,6 +25,10 @@ def callback_required_role(data: str | None) -> Role | None:
         return None
     if data.startswith("restore:select") or data.startswith("restore:confirm") or data.startswith("restore:path:confirm"):
         return Role.superadmin
+    if data.startswith("backup:delete"):
+        return Role.superadmin
+    if data.startswith("backup:open"):
+        return Role.viewer
     return CALLBACK_MIN_ROLES.get(data)
 
 

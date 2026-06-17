@@ -20,6 +20,9 @@ def test_callback_access_matrix() -> None:
     assert callback_required_role("cache:clear:confirm") is Role.admin
     assert callback_required_role("restore:select:42") is Role.superadmin
     assert callback_required_role("restore:confirm:42") is Role.superadmin
+    assert callback_required_role("backup:open:42") is Role.viewer
+    assert callback_required_role("backup:delete:ask:42") is Role.superadmin
+    assert callback_required_role("backup:delete:confirm:42") is Role.superadmin
 
 
 def test_reply_button_access_matrix() -> None:
