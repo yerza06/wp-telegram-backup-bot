@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import shutil
 import tempfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,6 +21,16 @@ from bot.services.process import CommandRunner
 from bot.utils.sanitize import safe_error_text
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class BackupItem:
+    id: int
+    status: str
+    archive_path: str | None
+    file_size_bytes: int | None
+    created_at: datetime
+    exists: bool
 
 
 class BackupService:
@@ -89,7 +101,8 @@ class BackupService:
             wordpress_dst = staging / "wordpress"
             database_dst = staging / "database"
             database_dst.mkdir(parents=True, exist_ok=True)
-            copy_wordpress(self.settings.wordpress.path, wordpress_dst)
+            # Копирование всего каталога WordPress блокирует event loop, выносим в поток.
+            await asyncio.to_thread(copy_wordpress, self.settings.wordpress.path, wordpress_dst)
             await self._dump_database(database_dst / "db.sql")
             write_json(
                 staging / "metadata.json",
@@ -113,7 +126,7 @@ class BackupService:
             archive_created = True
             return archive_path
         finally:
-            shutil.rmtree(staging, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, staging, True)
             if not archive_created and archive_path.exists():
                 archive_path.unlink(missing_ok=True)
 
@@ -164,3 +177,66 @@ class BackupService:
             size = f", {item.file_size_bytes} байт" if item.file_size_bytes else ""
             lines.append(f"#{item.id} — {item.status}{size}\n<code>{item.archive_path or 'путь не задан'}</code>")
         return "\n\n".join(lines)
+
+    async def get_backup_items(self, *, limit: int = 10) -> list[BackupItem]:
+        async with self.sessionmaker() as session:
+            backups = await BackupRepository(session).list_recent(limit=limit)
+        return [
+            BackupItem(
+                id=backup.id,
+                status=backup.status,
+                archive_path=backup.archive_path,
+                file_size_bytes=backup.file_size_bytes,
+                created_at=backup.created_at,
+                exists=bool(backup.archive_path) and Path(backup.archive_path).exists(),
+            )
+            for backup in backups
+        ]
+
+    async def get_backup_item(self, backup_id: int) -> BackupItem | None:
+        async with self.sessionmaker() as session:
+            backup = await BackupRepository(session).get(backup_id)
+        if backup is None or backup.is_removed:
+            return None
+        return BackupItem(
+            id=backup.id,
+            status=backup.status,
+            archive_path=backup.archive_path,
+            file_size_bytes=backup.file_size_bytes,
+            created_at=backup.created_at,
+            exists=bool(backup.archive_path) and Path(backup.archive_path).exists(),
+        )
+
+    async def delete_backup(self, backup_id: int, *, telegram_user_id: int | None = None) -> str:
+        await self.operations.ensure_no_active_heavy_operation()
+        async with self.sessionmaker() as session:
+            backups_repo = BackupRepository(session)
+            operations_repo = OperationRepository(session)
+            backup = await backups_repo.get(backup_id)
+            if backup is None or backup.is_removed:
+                return "❌ Бэкап не найден или уже удален."
+
+            archive_path = backup.archive_path
+            operation = await operations_repo.create(
+                operation_type="delete",
+                status="running",
+                telegram_user_id=telegram_user_id,
+                backup_id=backup_id,
+                details_json={"archive_path": archive_path},
+            )
+            await session.commit()
+
+            try:
+                if archive_path:
+                    Path(archive_path).unlink(missing_ok=True)
+                await backups_repo.mark_removed(backup_id)
+                await operations_repo.update_status(operation.id, status="success")
+                await session.commit()
+                logger.info("Backup #%s deleted: %s", backup_id, archive_path)
+                return f"🗑️ Бэкап #{backup_id} удален."
+            except Exception as exc:
+                safe = safe_error_text(exc)
+                logger.exception("Backup delete failed")
+                await operations_repo.update_status(operation.id, status="failed", error_message=safe)
+                await session.commit()
+                return f"❌ Бэкап #{backup_id} не удален: {safe}\nПодробности записаны в локальный лог."

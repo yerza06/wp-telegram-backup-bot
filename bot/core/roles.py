@@ -45,6 +45,5 @@ TEXT_MIN_ROLES: dict[str, Role] = {
     "💽 Проверить диск": Role.viewer,
     "📊 График диска": Role.viewer,
     "📦 Показать бэкапы": Role.viewer,
-    "♻️ Восстановить сайт": Role.superadmin,
     "🧹 Очистить кэш": Role.admin,
 }
