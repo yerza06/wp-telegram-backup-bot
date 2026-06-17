@@ -7,7 +7,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.keyboards.main import RESTORE_BUTTON_TEXT, restore_confirm_keyboard
+from bot.keyboards.main import restore_confirm_keyboard
 from bot.services import OperationBusyError, RestoreService
 from bot.services.disk import format_bytes
 
@@ -53,11 +53,6 @@ async def _send_restore_points(message: Message, restore_service: RestoreService
 
 @router.message(Command("restore"))
 async def restore(message: Message, restore_service: RestoreService) -> None:
-    await _send_restore_points(message, restore_service)
-
-
-@router.message(F.text == RESTORE_BUTTON_TEXT)
-async def restore_reply_button(message: Message, restore_service: RestoreService) -> None:
     await _send_restore_points(message, restore_service)
 
 

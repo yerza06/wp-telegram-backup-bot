@@ -7,7 +7,6 @@ BACKUP_BUTTON_TEXT = "💾 Создать полный бэкап"
 DISK_BUTTON_TEXT = "💽 Проверить диск"
 DISK_CHART_BUTTON_TEXT = "📊 График диска"
 BACKUPS_BUTTON_TEXT = "📦 Показать бэкапы"
-RESTORE_BUTTON_TEXT = "♻️ Восстановить сайт"
 CLEAR_CACHE_BUTTON_TEXT = "🧹 Очистить кэш"
 
 
@@ -16,7 +15,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=BACKUP_BUTTON_TEXT)],
             [KeyboardButton(text=DISK_BUTTON_TEXT), KeyboardButton(text=DISK_CHART_BUTTON_TEXT)],
-            [KeyboardButton(text=BACKUPS_BUTTON_TEXT), KeyboardButton(text=RESTORE_BUTTON_TEXT)],
+            [KeyboardButton(text=BACKUPS_BUTTON_TEXT)],
             [KeyboardButton(text=CLEAR_CACHE_BUTTON_TEXT)],
         ],
         resize_keyboard=True,
