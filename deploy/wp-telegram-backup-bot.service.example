@@ -1,26 +1,44 @@
 [Unit]
 Description=Telegram WordPress Backup Bot
-After=network.target mariadb.service mysql.service
-Requires=mariadb.service mysql.service
+# Боту нужна исходящая сеть к Telegram API и локальная БД (MariaDB).
+# Wants, а не Requires: падение/отсутствие БД не должно ронять бота целиком —
+# он продолжит отвечать на /status, /disk; бэкап при недоступной БД просто завершится с ошибкой.
+Wants=network-online.target mariadb.service
+After=network-online.target mariadb.service
+# Защита от crash-loop при битом .env/коде.
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/wp-telegram-backup-bot
 EnvironmentFile=/opt/wp-telegram-backup-bot/.env
 ExecStart=/opt/wp-telegram-backup-bot/.venv/bin/python -m bot
-Restart=always
+Restart=on-failure
 RestartSec=5
 User=root
 Group=root
 
+# Бэкап-архивы и db.sql не должны быть доступны "прочим" пользователям.
+UMask=0027
+
+# Бэкап/restore могут идти долго — не убивать процесс мгновенно при stop.
+TimeoutStopSec=120
+KillMode=mixed
+
+# Логи в journald (читать: journalctl -u wp-telegram-backup-bot -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wp-telegram-backup-bot
+
 # Ограничения ресурсов:
-# CPUQuota=100% ограничивает сервис примерно одним CPU-ядром.
-# TasksMax нельзя ставить в 1, иначе бот не сможет запускать tar/mysql/chown.
+# CPUQuota ограничивает компрессию zstd, чтобы не душить живой сайт во время бэкапа.
+# Подстройте под сервер: 100% = одно ядро (для 1-ядерного VPS), на многоядерном
+# можно дать 200% и больше. Уберите строку совсем, чтобы снять ограничение по CPU.
+# Лимиты памяти и TasksMax намеренно НЕ задаём: корректный потолок памяти зависит от
+# размера сайта и RAM сервера (слишком низкий OOM-убьёт бэкап), а боту нужно свободно
+# порождать tar/mysqldump/runuser/chown. При необходимости добавьте сами.
 CPUQuota=100%
-MemoryAccounting=yes
-MemoryHigh=900M
-MemoryMax=1G
-TasksMax=32
 
 [Install]
 WantedBy=multi-user.target

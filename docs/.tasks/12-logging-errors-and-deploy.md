@@ -43,7 +43,7 @@
 - `bot/utils/sanitize.py`
 - `README.md`
 - `docs/acceptance-checklist.md`
-- `deploy/telegram-wp-backup.service.example`
+- `deploy/wp-telegram-backup-bot.service.example`
 
 ## Критерии готовности
 

@@ -52,17 +52,18 @@ site_backup_YYYY-MM-DD_HH-mm-ss.tar.zst
 
 ## systemd
 
-Пример unit-файла: `deploy/telegram-wp-backup.service.example`.
+Пример unit-файла: `deploy/wp-telegram-backup-bot.service.example`.
 
 ```bash
-sudo mkdir -p /opt/telegram-wp-backup
-sudo cp -r . /opt/telegram-wp-backup
-cd /opt/telegram-wp-backup
+sudo mkdir -p /opt/wp-telegram-backup-bot
+sudo cp -r . /opt/wp-telegram-backup-bot
+cd /opt/wp-telegram-backup-bot
 uv sync
-sudo cp deploy/telegram-wp-backup.service.example /etc/systemd/system/telegram-wp-backup.service
+sudo chown root:root .env && sudo chmod 600 .env   # секреты: токен бота + пароль БД
+sudo cp deploy/wp-telegram-backup-bot.service.example /etc/systemd/system/wp-telegram-backup-bot.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now telegram-wp-backup.service
-sudo journalctl -u telegram-wp-backup.service -f
+sudo systemctl enable --now wp-telegram-backup-bot.service
+sudo journalctl -u wp-telegram-backup-bot.service -f
 ```
 
 ## Диагностика
