@@ -44,6 +44,7 @@
 |------------|-----|-------------|--------------|----------|
 | `CORE__SQLITE_PATH` | path | — | `bot.sqlite3` | Путь к файлу SQLite |
 | `CORE__LOGS_DIR` | path | — | `logs` | Каталог логов |
+| `CORE__SSH` | str | — | `user@server` | `user@host` сервера для примеров команд `scp`/`rsync` в подсказке `/restore_path` |
 
 ## График диска (`DISK_CHART__*`)
 
