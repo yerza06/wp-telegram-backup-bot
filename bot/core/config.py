@@ -55,6 +55,7 @@ class BackupSettings(BaseSettings):
 class CoreSettings(BaseSettings):
     sqlite_path: Path = Path("bot.sqlite3")
     logs_dir: Path = Path("logs")
+    ssh: str = "user@server"
 
 
 class DiskChartSettings(BaseSettings):
