@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from uuid import uuid4
 
 from aiogram import F, Router
@@ -7,12 +8,24 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from bot.core.config import Settings
 from bot.keyboards.main import restore_confirm_keyboard
 from bot.services import OperationBusyError, RestoreService
 from bot.services.disk import format_bytes
 
 router = Router(name=__name__)
 _external_restore_requests: dict[str, str] = {}
+
+
+def _copy_commands_hint(settings: Settings) -> str:
+    dest = html.escape(f"{settings.core.ssh}:{settings.backup.path_dir}/")
+    return (
+        "\n\n📤 Сначала скопируйте архив на сервер одной из команд:\n\n"
+        "<b>scp:</b>\n"
+        f"<code>scp ./backup.tar.zst {dest}</code>\n\n"
+        "<b>rsync:</b>\n"
+        f"<code>rsync -avP ./backup.tar.zst {dest}</code>"
+    )
 
 
 async def _safe_restore_message(coro) -> str:  # type: ignore[no-untyped-def]
@@ -91,14 +104,19 @@ async def restore_confirm(callback: CallbackQuery, restore_service: RestoreServi
 
 
 @router.message(Command("restore_path"))
-async def restore_path(message: Message, command: CommandObject) -> None:
+async def restore_path(message: Message, command: CommandObject, settings: Settings) -> None:
     if not command.args:
-        await message.answer("Укажите локальный путь: /restore_path /path/to/backup.tar.zst")
+        await message.answer(
+            "Укажите локальный путь: /restore_path /path/to/backup.tar.zst"
+            + _copy_commands_hint(settings)
+        )
         return
     token = uuid4().hex[:16]
     _external_restore_requests[token] = command.args.strip()
     await message.answer(
-        f"Вы выбрали восстановление из внешнего архива:\n<code>{command.args.strip()}</code>\nПодтвердите опасную операцию.",
+        f"Вы выбрали восстановление из внешнего архива:\n<code>{html.escape(command.args.strip())}</code>\n"
+        "Подтвердите опасную операцию."
+        + _copy_commands_hint(settings),
         reply_markup=external_restore_confirm_keyboard(token),
     )
 

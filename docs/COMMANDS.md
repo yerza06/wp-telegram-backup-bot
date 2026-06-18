@@ -16,7 +16,7 @@
 | `/clear_cache` | Очистить кэш WordPress (запрос подтверждения) | admin | `bot/handlers/cache.py` |
 | `/restore` | Выбрать бэкап для восстановления (список) | superadmin | `bot/handlers/restore.py` |
 | `/restore_<id>` | Восстановить конкретный бэкап по id (запрос подтверждения) | superadmin | `bot/handlers/restore.py` |
-| `/restore_path <path>` | Восстановить из внешнего локального `.tar.zst` (запрос подтверждения) | superadmin | `bot/handlers/restore.py` |
+| `/restore_path <path>` | Восстановить из внешнего локального `.tar.zst` (запрос подтверждения; в ответ бот подсказывает готовые команды `scp`/`rsync` для копирования архива на сервер) | superadmin | `bot/handlers/restore.py` |
 
 > `/restore_<id>` и любые команды с префиксом `restore_` требуют роли `superadmin` (правило в `command_required_role`).
 
