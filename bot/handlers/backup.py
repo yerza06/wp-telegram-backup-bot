@@ -10,6 +10,7 @@ from bot.keyboards.main import (
     BACKUP_BUTTON_TEXT,
     BACKUPS_BUTTON_TEXT,
     backup_actions_keyboard,
+    backup_confirm_keyboard,
     backup_delete_confirm_keyboard,
     backups_manage_keyboard,
 )
@@ -31,21 +32,38 @@ async def _start_backup(message: Message, service: BackupService, user_id: int |
     await message.answer(await _run_backup(service, user_id))
 
 
+async def _ask_backup_confirm(message: Message) -> None:
+    await message.answer(
+        "Создать полный бэкап сайта? Операция может занять несколько минут.",
+        reply_markup=backup_confirm_keyboard(),
+    )
+
+
 @router.message(Command("backup"))
-async def backup(message: Message, backup_service: BackupService) -> None:
-    await _start_backup(message, backup_service, message.from_user.id if message.from_user else None)
+async def backup(message: Message) -> None:
+    await _ask_backup_confirm(message)
 
 
 @router.message(F.text == BACKUP_BUTTON_TEXT)
-async def backup_reply_button(message: Message, backup_service: BackupService) -> None:
-    await _start_backup(message, backup_service, message.from_user.id if message.from_user else None)
+async def backup_reply_button(message: Message) -> None:
+    await _ask_backup_confirm(message)
 
 
 @router.callback_query(F.data == "backup:create")
-async def backup_callback(callback: CallbackQuery, backup_service: BackupService) -> None:
+async def backup_callback(callback: CallbackQuery) -> None:
     await callback.answer()
     if callback.message:
-        await _start_backup(callback.message, backup_service, callback.from_user.id if callback.from_user else None)
+        await _ask_backup_confirm(callback.message)
+
+
+@router.callback_query(F.data == "backup:create:confirm")
+async def backup_confirm_callback(callback: CallbackQuery, backup_service: BackupService) -> None:
+    await callback.answer()
+    if callback.message:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await _start_backup(
+            callback.message, backup_service, callback.from_user.id if callback.from_user else None
+        )
 
 
 def _backup_label(item) -> str:  # type: ignore[no-untyped-def]

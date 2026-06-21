@@ -23,6 +23,14 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
+def backup_confirm_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Да, создать бэкап", callback_data="backup:create:confirm")
+    builder.button(text="Отмена", callback_data="menu:cancel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def cache_confirm_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Да, очистить кэш", callback_data="cache:clear:confirm")
